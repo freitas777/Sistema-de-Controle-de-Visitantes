@@ -37,6 +37,15 @@ bool Visitante::temVisitaEmAndamento() {
     return false;
 }
 
+bool Visitante::teveVisitaEmData(string data) {
+    NoVisita* atual = historicoVisitas;
+    while (atual != nullptr) {
+        if (atual->dados.data == data) return true;
+        atual = atual->proximo;
+    }
+    return false;
+}
+
 int Visitante::getNumeroVisitas() {
     int count = 0;
     NoVisita* atual = historicoVisitas;
@@ -59,4 +68,32 @@ void Visitante::imprimirHistorico() {
         atual = atual->proximo;
     }
     cout << "------------------------------------------\n";
+}
+
+bool Visitante::atualizarVisitaEmAndamento(string novaData, string novaHoraEntrada, string novoMotivo) {
+    NoVisita* atual = historicoVisitas;
+
+    while (atual != nullptr) {
+        if (atual->dados.horaSaida == "EM ANDAMENTO") {
+            atual->dados.data = novaData;
+            atual->dados.horaEntrada = novaHoraEntrada;
+            atual->dados.motivo = novoMotivo;
+            return true;
+        }
+        atual = atual->proximo;
+    }
+    return false;
+}
+
+bool Visitante::getVisitaEmAndamento(Visita& out) {
+    NoVisita* atual = historicoVisitas;
+
+    while (atual != nullptr) {
+        if (atual->dados.horaSaida == "EM ANDAMENTO") {
+            out = atual->dados;
+            return true;
+        }
+        atual = atual->proximo;
+    }
+    return false;
 }

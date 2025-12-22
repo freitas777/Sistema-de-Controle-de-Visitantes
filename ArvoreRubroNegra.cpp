@@ -19,6 +19,23 @@ ArvoreRubroNegra::ArvoreRubroNegra() {
     inicializarSentinel();
 }
 
+void ArvoreRubroNegra::apagarSubarvore(NoRB* node) {
+    if (node == TNULL) return;
+
+    apagarSubarvore(node->esquerda);
+    apagarSubarvore(node->direita);
+
+    if (node->visitante)
+        delete node->visitante;
+
+    delete node;
+}
+
+ArvoreRubroNegra::~ArvoreRubroNegra() {
+    apagarSubarvore(raiz);
+    delete TNULL;
+}
+
 void ArvoreRubroNegra::rotacaoEsquerda(NoRB* x) {
     NoRB* y = x->direita;
     x->direita = y->esquerda;
@@ -44,7 +61,7 @@ void ArvoreRubroNegra::rotacaoDireita(NoRB* x) {
         y->direita->pai = x;
     }
     y->pai = x->pai;
-    if (x->pai == nullptr) {
+    if (x->pai == TNULL) {
         raiz = y;
     } else if (x == x->pai->direita) {
         x->pai->direita = y;
@@ -151,8 +168,30 @@ void ArvoreRubroNegra::listarVisitantes() {
     auxiliarListar(raiz);
 }
 
+int ArvoreRubroNegra::contarVisitantesEmDataAux(NoRB* node, string data) {
+    if (node == TNULL) return 0;
+
+    int count = 0;
+
+    if (node->visitante != nullptr) {
+        if (node->visitante->teveVisitaEmData(data)) {
+            count = 1;
+        }
+    }
+
+    count += contarVisitantesEmDataAux(node->esquerda, data);
+    count += contarVisitantesEmDataAux(node->direita, data);
+
+    return count;
+}
+
+int ArvoreRubroNegra::contarVisitantesEmData(string data) {
+    if (raiz == TNULL) return 0;
+    return contarVisitantesEmDataAux(raiz, data);
+}
+
 void ArvoreRubroNegra::percursoLargura() {
-    std::cout << "\n--- Percurso em Largura (Debug RBT) ---\n";
+    std::cout << "\n--- Percurso em Largura ---\n";
     if (raiz == TNULL) return;
 
     FilaNoRB fila;
@@ -167,4 +206,134 @@ void ArvoreRubroNegra::percursoLargura() {
         if (atual->esquerda != TNULL) fila.enfileirar(atual->esquerda);
         if (atual->direita != TNULL) fila.enfileirar(atual->direita);
     }
+}
+
+void ArvoreRubroNegra::transplant(NoRB* u, NoRB* v) {
+    if (u->pai == TNULL) {
+        raiz = v;
+    } else if (u == u->pai->esquerda) {
+        u->pai->esquerda = v;
+    } else {
+        u->pai->direita = v;
+    }
+    v->pai = u->pai;
+}
+
+NoRB* ArvoreRubroNegra::minimo(NoRB* node) {
+    while (node->esquerda != TNULL) {
+        node = node->esquerda;
+    }
+    return node;
+}
+
+void ArvoreRubroNegra::removerFixup(NoRB* x) {
+    while (x != raiz && x->cor == PRETO) {
+        if (x == x->pai->esquerda) {
+            NoRB* w = x->pai->direita;
+            if (w->cor == VERMELHO) {
+                w->cor = PRETO;
+                x->pai->cor = VERMELHO;
+                rotacaoEsquerda(x->pai);
+                w = x->pai->direita;
+            }
+            if (w->esquerda->cor == PRETO && w->direita->cor == PRETO) {
+                w->cor = VERMELHO;
+                x = x->pai;
+            } else {
+                if (w->direita->cor == PRETO) {
+                    w->esquerda->cor = PRETO;
+                    w->cor = VERMELHO;
+                    rotacaoDireita(w);
+                    w = x->pai->direita;
+                }
+                w->cor = x->pai->cor;
+                x->pai->cor = PRETO;
+                w->direita->cor = PRETO;
+                rotacaoEsquerda(x->pai);
+                x = raiz;
+            }
+        } else {
+            NoRB* w = x->pai->esquerda;
+            if (w->cor == VERMELHO) {
+                w->cor = PRETO;
+                x->pai->cor = VERMELHO;
+                rotacaoDireita(x->pai);
+                w = x->pai->esquerda;
+            }
+            if (w->direita->cor == PRETO && w->esquerda->cor == PRETO) {
+                w->cor = VERMELHO;
+                x = x->pai;
+            } else {
+                if (w->esquerda->cor == PRETO) {
+                    w->direita->cor = PRETO;
+                    w->cor = VERMELHO;
+                    rotacaoEsquerda(w);
+                    w = x->pai->esquerda;
+                }
+                w->cor = x->pai->cor;
+                x->pai->cor = PRETO;
+                w->esquerda->cor = PRETO;
+                rotacaoDireita(x->pai);
+                x = raiz;
+            }
+        }
+    }
+    x->cor = PRETO;
+}
+
+bool ArvoreRubroNegra::remover(const std::string& cpf) {
+    NoRB* z = buscarNo(cpf);
+    if (z == TNULL) return false; // não encontrado
+
+    if (z->visitante && z->visitante->temVisitaEmAndamento()) {
+        return false;
+    }
+
+    NoRB* y = z;
+    Cor yOriginalCor = y->cor;
+    NoRB* x = nullptr;
+
+    Visitante* visitanteParaDeletar = nullptr;
+
+    if (z->esquerda == TNULL) {
+        x = z->direita;
+        visitanteParaDeletar = z->visitante;
+        transplant(z, z->direita);
+    } else if (z->direita == TNULL) {
+        x = z->esquerda;
+        visitanteParaDeletar = z->visitante;
+        transplant(z, z->esquerda);
+    } else {
+        y = minimo(z->direita);
+        yOriginalCor = y->cor;
+        x = y->direita;
+
+        if (y->pai == z) {
+            x->pai = y;
+        } else {
+            transplant(y, y->direita);
+            y->direita = z->direita;
+            y->direita->pai = y;
+        }
+
+        visitanteParaDeletar = z->visitante;
+
+        transplant(z, y);
+        y->esquerda = z->esquerda;
+        y->esquerda->pai = y;
+        y->cor = z->cor;
+
+    }
+
+    if (yOriginalCor == PRETO) {
+        removerFixup(x);
+    }
+
+    delete z;
+
+    if (visitanteParaDeletar) {
+        delete visitanteParaDeletar;
+    }
+
+    return true;
 }

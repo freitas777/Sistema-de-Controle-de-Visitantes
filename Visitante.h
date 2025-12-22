@@ -5,11 +5,12 @@
 #include <iostream>
 #include <string>
 
-class Visitante {
+class Visitante
+{
 private:
     string cpf;
     string nome;
-    NoVisita* historicoVisitas;
+    NoVisita *historicoVisitas;
 
 public:
     Visitante(string c, string n);
@@ -22,7 +23,9 @@ public:
     bool registrarSaida(string horaSaida);
     bool temVisitaEmAndamento();
     void imprimirHistorico();
+    bool atualizarVisitaEmAndamento(string novaData, string novaHoraEntrada, string novoMotivo);
+    bool getVisitaEmAndamento(Visita &out);
+    bool teveVisitaEmData(string data);
 };
-
 
 #endif
